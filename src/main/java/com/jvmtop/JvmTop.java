@@ -40,6 +40,7 @@ import com.jvmtop.view.ConsoleView;
 import com.jvmtop.view.VMDetailView;
 import com.jvmtop.view.VMOverviewView;
 import com.jvmtop.view.VMProfileView;
+import java.io.File;
 
 /**
  * JvmTop entry point class.
@@ -57,22 +58,17 @@ import com.jvmtop.view.VMProfileView;
 public class JvmTop
 {
 
-  public static final String                         VERSION                 = "0.8.0 alpha";
+  public static final String VERSION = "swiseMOD";
 
-  private Double                                     delay_                  = 1.0;
+  private Double delay_ = 0.5;
 
-  private Boolean                                    supportsSystemAverage_;
+  private Boolean supportsSystemAverage_;
 
   private java.lang.management.OperatingSystemMXBean localOSBean_;
+  
+  private int maxIterations_ = -1;
 
-  private final static String                        CLEAR_TERMINAL_ANSI_CMD = new String(
-                                                                                 new byte[] {
-      (byte) 0x1b, (byte) 0x5b, (byte) 0x32, (byte) 0x4a, (byte) 0x1b,
-      (byte) 0x5b, (byte) 0x48                                                  });
-
-  private int                                        maxIterations_          = -1;
-
-  private static Logger                              logger;
+  private static Logger logger;
 
   private static OptionParser createOptionParser()
   {
@@ -91,6 +87,7 @@ public class JvmTop
             "delay between each output iteration").withRequiredArg()
         .ofType(Double.class);
     parser.accepts("profile", "start CPU profiling at the specified jvm");
+    parser.accepts("overview", "start overview for specific PID");
     parser.accepts("sysinfo", "outputs diagnostic information");
     parser.accepts("verbose", "verbose mode");
     parser.accepts("threadlimit",
@@ -118,12 +115,12 @@ public class JvmTop
   public static void main(String[] args) throws Exception
   {
     Locale.setDefault(Locale.US);
-
+    
     logger = Logger.getLogger("jvmtop");
 
     OptionParser parser = createOptionParser();
     OptionSet a = parser.parse(args);
-
+    
     if (a.has("help"))
     {
       System.out.println("jvmtop - java monitoring for the command-line");
@@ -138,9 +135,11 @@ public class JvmTop
 
     Integer width = null;
 
-    double delay = 1.0;
+    double delay = 0.5;
 
     boolean profileMode = a.has("profile");
+    
+    boolean overViewPIDMode = a.has("overview");
 
     Integer iterations = a.has("once") ? 1 : -1;
 
@@ -221,6 +220,9 @@ public class JvmTop
         {
           jvmTop.run(new VMProfileView(pid, width));
         }
+        else if (overViewPIDMode){
+            jvmTop.run(new VMOverviewView(width, pid));
+        }
         else
         {
           VMDetailView vmDetailView = new VMDetailView(pid, width);
@@ -294,13 +296,10 @@ public class JvmTop
       System.setOut(new PrintStream(new BufferedOutputStream(
           new FileOutputStream(FileDescriptor.out)), false));
       int iterations = 0;
+      System.out.flush();
+      printTopBar();
       while (!view.shouldExit())
       {
-        if (maxIterations_ > 1 || maxIterations_ == -1)
-        {
-          clearTerminal();
-        }
-        printTopBar();
         view.printView();
         System.out.flush();
         iterations++;
@@ -323,27 +322,6 @@ public class JvmTop
     }
   }
 
-  /**
-   *
-   */
-  private void clearTerminal()
-  {
-    if (System.getProperty("os.name").contains("Windows"))
-    {
-      //hack
-      System.out
-          .printf("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n");
-    }
-    else if (System.getProperty("jvmtop.altClear") != null)
-    {
-      System.out.print('\f');
-    }
-    else
-    {
-      System.out.print(CLEAR_TERMINAL_ANSI_CMD);
-    }
-  }
-
   public JvmTop()
   {
     localOSBean_ = ManagementFactory.getOperatingSystemMXBean();
@@ -354,7 +332,7 @@ public class JvmTop
    * @throws SecurityException
    *
    */
-  private void printTopBar()
+  private void printTopBar() throws Exception
   {
     System.out.printf(" JvmTop %s - %8tT, %6s, %2d cpus, %15.15s", VERSION,
         new Date(), localOSBean_.getArch(),
@@ -370,7 +348,7 @@ public class JvmTop
     {
       System.out.println();
     }
-    System.out.println(" https://github.com/patric-r/jvmtop");
+    System.out.println(" https://github-hcs.dxc.com/sdelgado21/jvmtop");
     System.out.println();
   }
 

@@ -6,7 +6,7 @@
 
     <groupId>com.jvmtop</groupId>
     <artifactId>jvmtop</artifactId>
-    <version>0.9.0-swiseMOD</version>
+    <version>1.0.0</version>
     <repositories>
         <repository>
             <id>central</id>
@@ -37,7 +37,7 @@
     <properties>
         <!-- change it to point to your tools.jar from your JDK -->
         <toolsjar>${java.home}/../lib/tools.jar</toolsjar>
-        <jdk.version>1.6</jdk.version>
+        <jdk.version>1.8</jdk.version>
     </properties>
 
     <build>

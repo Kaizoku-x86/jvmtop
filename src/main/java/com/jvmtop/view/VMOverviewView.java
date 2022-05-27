@@ -31,6 +31,7 @@ import java.util.Set;
 import com.jvmtop.monitor.VMInfo;
 import com.jvmtop.monitor.VMInfoState;
 import com.jvmtop.openjdk.tools.LocalVirtualMachine;
+import java.util.Date;
 
 /**
  * "overview" view, providing the most-important metrics of all accessible jvms in a top-like manner.
@@ -40,18 +41,31 @@ import com.jvmtop.openjdk.tools.LocalVirtualMachine;
  */
 public class VMOverviewView extends AbstractConsoleView
 {
+  private boolean firstTime = true;
+  
+  private int vmid = 0;
 
   private List<VMInfo>                      vmInfoList = new ArrayList<VMInfo>();
 
   private Map<Integer, LocalVirtualMachine> vmMap      = new HashMap<Integer, LocalVirtualMachine>();
-
+  
   public VMOverviewView(Integer width) {
     super(width);
+  }
+  
+  public VMOverviewView(Integer width, Integer vmid) throws Exception {
+    super(width);
+    this.vmid = vmid;
+    LocalVirtualMachine localVirtualMachine = LocalVirtualMachine
+        .getLocalVirtualMachine(vmid);
   }
 
   public void printView() throws Exception
   {
-    printHeader();
+    if(firstTime){
+        printHeader();
+        firstTime = false;
+    }
 
     //to reduce cpu effort, scan only every 5 iterations for new vms
     scanForNewVMs();
@@ -73,6 +87,7 @@ public class VMOverviewView extends AbstractConsoleView
             .printf(
                 "%5d %-15.15s [ERROR: Could not fetch telemetries (Process DEAD?)] %n",
                 vmInfo.getId(), getEntryPointClass(vmInfo.getDisplayName()));
+        System.exit(1);
 
       }
       else if (vmInfo.getState() == VMInfoState.ERROR_DURING_ATTACH)
@@ -112,26 +127,49 @@ public class VMOverviewView extends AbstractConsoleView
    */
   private void printVM(VMInfo vmInfo) throws Exception
   {
+    if(vmid != 0 && vmInfo.getId()==vmid){
+        String deadlockState = "";
+        if (vmInfo.hasDeadlockThreads())
+        {
+          deadlockState = "!D";
+        }
 
-    String deadlockState = "";
-    if (vmInfo.hasDeadlockThreads())
-    {
-      deadlockState = "!D";
+        System.out.println(
+                new Date() +", "+
+                vmInfo.getId() +", "+
+                getEntryPointClass(vmInfo.getDisplayName())+", "+
+                toMB(vmInfo.getHeapUsed())+", "+
+                toMB(vmInfo.getHeapMax())+", "+
+                toMB(vmInfo.getNonHeapUsed())+", "+
+                toMB(vmInfo.getNonHeapMax())+", "+
+                vmInfo.getCpuLoad() * 100+", "+
+                vmInfo.getGcLoad() * 100+", "+
+                vmInfo.getVMVersion()+", "+
+                vmInfo.getOSUser()+", "+
+                vmInfo.getThreadCount()+", "+
+                deadlockState);
+    } else if(vmid == 0){
+        String deadlockState = "";
+        if (vmInfo.hasDeadlockThreads())
+        {
+          deadlockState = "!D";
+        }
+
+        System.out.println(
+                new Date() +", "+
+                vmInfo.getId() +", "+
+                getEntryPointClass(vmInfo.getDisplayName())+", "+
+                toMB(vmInfo.getHeapUsed())+", "+
+                toMB(vmInfo.getHeapMax())+", "+
+                toMB(vmInfo.getNonHeapUsed())+", "+
+                toMB(vmInfo.getNonHeapMax())+", "+
+                vmInfo.getCpuLoad() * 100+", "+
+                vmInfo.getGcLoad() * 100+", "+
+                vmInfo.getVMVersion()+", "+
+                vmInfo.getOSUser()+", "+
+                vmInfo.getThreadCount()+", "+
+                deadlockState);
     }
-
-    System.out.println(
-            vmInfo.getId() +","+
-            getEntryPointClass(vmInfo.getDisplayName())+","+
-            toMB(vmInfo.getHeapUsed())+","+
-            toMB(vmInfo.getHeapMax())+","+
-            toMB(vmInfo.getNonHeapUsed())+","+
-            toMB(vmInfo.getNonHeapMax())+","+
-            vmInfo.getCpuLoad() * 100+","+
-            vmInfo.getGcLoad() * 100+","+
-            vmInfo.getVMVersion()+","+
-            vmInfo.getOSUser()+","+
-            vmInfo.getThreadCount()+","+
-            deadlockState);
 
   }
 
@@ -178,8 +216,7 @@ public class VMOverviewView extends AbstractConsoleView
   private void printHeader()
   {
     System.out.println(
-        "PID, MAIN-CLASS, HPCUR, HPMAX, NHCUR, NHMAX, CPU, GC, "
+        "Date, PID, MAIN-CLASS, HPCUR, HPMAX, NHCUR, NHMAX, CPU, GC, "
                 + "VM, USERNAME, #T, DL");
   }
-
 }
